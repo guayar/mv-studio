@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MV Studio – instructions</title>
+<style>body{margin:0;background:#15161a;color:#e8e6e1;font:15px/1.6 system-ui,sans-serif}main{max-width:760px;margin:0 auto;padding:24px 16px 80px}
+h1{color:#e0a339;font-size:22px}h2{color:#e0a339;font-size:16px;margin-top:28px}b{color:#fff}a{color:#e0a339}
+li{margin:6px 0}.note{background:#1e2026;border:1px solid #2e313a;border-radius:8px;padding:10px 14px;margin:12px 0}</style></head>
+<body><main>
+<a href="/">← back to the app</a>
+<h1>MV Studio – how to work with chunks</h1>
+
+<h2>0. New song: upload and split into chunks</h2>
+<ol>
+<li><b>New project</b> (top bar) – a name is enough.</li>
+<li>Tab <b>Song &amp; split</b>: choose the file and click <b>Upload song</b>.</li>
+<li>Paste the lyrics: one line = one sung phrase. Mark sections with a separate line, e.g. <code>[Verse 1]</code>.</li>
+<li>Set the <b>maximum chunk length</b> and click <b>Analyse and split</b>. Whisper listens to the song and finds the phrase times (a few minutes).</li>
+<li>In "Phrases with times" listen (▶) and fix times where needed, then <b>Save times and split again</b>.</li>
+<li>"Proposed chunks" shows the split: whole phrases, none is cut, gaps without vocals become separate chunks. <b>Insert into chunk plan</b> moves it to the list on the left.</li>
+</ol>
+
+<h2>1. Choosing the chunk you work on</h2>
+<ul>
+<li>Pick the project from the list at the top.</li>
+<li>Chunks are in the left column, ordered by song time. <b>Click a chunk</b> – it gets an orange border and the whole right side is about it.</li>
+<li>The dot next to the name: green = accepted, blue = rendered and waiting for your verdict, yellow = rendering, red = rejected or error, grey = nothing yet.</li>
+<li>New chunk: <b>+ Add chunk</b> below the list. Delete: <b>Delete chunk</b> in the bar at the top of the chunk (video files stay on disk).</li>
+</ul>
+<div class="note">Chunks form a chain. The calculations and render of the next chunk unlock only when the previous one is accepted, because the film length and the extend base depend on it.</div>
+
+<h2>2. Working on a chunk, step by step</h2>
+<ol>
+<li><b>Film preview</b> – "▶ Film up to here" shows the picture with music as it currently is before this chunk.</li>
+<li><b>Chunk audio</b> – ▶ Chunk plays its part of the song; words light up while playing.</li>
+<li><b>Calculations</b> – read the warnings (e.g. a phrase at the very end of the clip). If needed, change "Ordered seconds" and save.</li>
+<li>First chunk only: <b>Make still from reference</b> in card "1. Chunk".</li>
+<li><b>Prompt</b> – click <b>Insert template</b> and replace the words in CAPITALS, or type/paste your own, then <b>Check prompt</b>. Red messages must be fixed, yellow ones are notes.</li>
+<li><b>Render</b> – "Show commands (dry run)" starts nothing. <b>Render</b> starts the render (one at a time; the app refuses when ComfyUI is busy).</li>
+</ol>
+
+<h2>3. Reviewing and accepting a generated chunk</h2>
+<p>After the render, the new version appears at the bottom, in card <b>5. Versions and approval</b>, and the accept buttons also appear in the bar at the top of the chunk.</p>
+<ul>
+<li><b>Show clip</b> – just the raw clip.</li>
+<li><b>Assemble with music and show</b> – joins the whole film so far with this version and the real song, playing from 4 s before the seam.</li>
+<li><b>Accept</b> – this version becomes part of the film.</li>
+<li><b>Reject</b> – the app asks for a reason and logs it (Rules button). The file stays on disk.</li>
+<li><b>Use this prompt</b> – puts that version's prompt into the editor so you can fix it and render the next version.</li>
+<li><b>Delete version</b> – removes the version from the app; the video file stays on disk.</li>
+</ul>
+
+<h2>4. Joining with the rest of the film</h2>
+<ul>
+<li><b>There is no separate joining step.</b> Accepting a chunk puts it into the film.</li>
+<li>The whole film is written on every "Assemble with music and show": <code>projects/&lt;project&gt;/film/film_&lt;version&gt;.mp4</code>.</li>
+<li>Changing your mind: accept another version of the same chunk and the film switches to it.</li>
+</ul>
+</main></body></html>

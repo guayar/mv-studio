@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MV Studio – instrukcja</title>
+<style>body{margin:0;background:#15161a;color:#e8e6e1;font:15px/1.6 system-ui,sans-serif}main{max-width:760px;margin:0 auto;padding:24px 16px 80px}
+h1{color:#e0a339;font-size:22px}h2{color:#e0a339;font-size:16px;margin-top:28px}b{color:#fff}a{color:#e0a339}
+li{margin:6px 0}.note{background:#1e2026;border:1px solid #2e313a;border-radius:8px;padding:10px 14px;margin:12px 0}</style></head>
+<body><main>
+<a href="/">← wróć do apki</a>
+<h1>MV Studio – jak pracować z chunkami</h1>
+
+<h2>0. Nowa piosenka: wgranie i podział na chunki</h2>
+<ol>
+<li><b>Nowy projekt</b> (u góry) – wystarczy nazwa.</li>
+<li>Zakładka <b>Piosenka i podział</b>: wybierz plik i kliknij <b>Wgraj piosenkę</b>.</li>
+<li>Wklej tekst: jedna linijka = jedna śpiewana fraza. Sekcje oznacz osobną linią, np. <code>[Zwrotka 1]</code>.</li>
+<li>Ustaw <b>maksymalną długość chunka</b> i kliknij <b>Analizuj i potnij</b>. Whisper słucha piosenki i szuka czasów fraz (kilka minut).</li>
+<li>W „Frazy z czasami” posłuchaj (▶) i popraw czasy, gdzie trzeba, potem <b>Zapisz czasy i potnij ponownie</b>.</li>
+<li>„Propozycja chunków” pokazuje podział: całe frazy, żadna nie jest cięta, przerwy bez wokalu to osobne chunki. <b>Wstaw do planu chunków</b> przenosi go na listę po lewej.</li>
+</ol>
+<h2>1. Wybór chunka, na którym pracujesz</h2>
+<ul>
+<li>Projekt wybierasz z listy u góry (obok napisu MV Studio).</li>
+<li>Chunki są w kolumnie po lewej, ułożone według czasu w piosence. <b>Kliknij chunk</b> – dostaje pomarańczową ramkę i cała prawa strona dotyczy tylko jego.</li>
+<li>Kropka przy nazwie: zielona = zaakceptowany, niebieska = wyrenderowany i czeka na ocenę, żółta = renderuje się, czerwona = odrzucony albo błąd, szara = jeszcze nic.</li>
+<li>Nowy chunk: <b>+ Dodaj chunk</b> pod listą. Wpisz nazwę, początek i koniec w piosence, tryb, i kliknij <b>Zapisz</b>.</li>
+<li>Usuwanie: <b>Usuń chunk</b> w pasku na górze chunka (pliki wideo zostają na dysku).</li>
+</ul>
+<div class="note">Chunki tworzą łańcuch. Wyliczenia i render następnego chunka odblokowują się dopiero, gdy poprzedni jest zaakceptowany, bo od niego zależy długość filmu i baza do extendu.</div>
+
+<h2>2. Praca nad chunkiem, po kolei</h2>
+<ol>
+<li><b>Podgląd filmu</b> – „▶ Film do tego miejsca” pokazuje obraz z muzyką taki, jaki jest teraz przed tym chunkiem (ostatnie 8 s albo od początku).</li>
+<li><b>Podsłuch chunka</b> – ▶ Chunk gra jego fragment piosenki; słowa podświetlają się w trakcie. Sprawdź, co dokładnie jest śpiewane.</li>
+<li><b>Wyliczenia</b> – przeczytaj ostrzeżenia (np. fraza na samym końcu klipu). Jeśli trzeba, zmień „Zamówione sekundy” i zapisz.</li>
+<li>Tylko przy pierwszym chunku: <b>Zrób still z refki</b> w karcie „1. Chunk” (nieruchomy obrazek postaci, od którego film startuje).</li>
+<li><b>Prompt</b> – kliknij <b>Wstaw szablon</b> i podmień słowa pisane WIELKIMI LITERAMI, albo wpisz/wklej własny prompt, kliknij <b>Sprawdź prompt</b>. Czerwone komunikaty trzeba poprawić, żółte to tylko uwagi.</li>
+<li><b>Render</b> – „Pokaż polecenia (na sucho)” niczego nie uruchamia, tylko pokazuje, co pójdzie do ComfyUI. <b>Renderuj</b> startuje render (jeden naraz; apka odmówi, gdy ComfyUI jest zajęte). Postęp widać w prawym górnym rogu.</li>
+</ol>
+
+<h2>3. Ocena i akceptacja wygenerowanego chunka</h2>
+<p>Po renderze nowa wersja pojawia się na dole, w karcie <b>5. Wersje i akceptacja</b>, a przyciski akceptacji także w pasku na górze chunka. Przy każdej wersji:</p>
+<ul>
+<li><b>Pokaż klip</b> – sam surowy klip z modelu.</li>
+<li><b>Złóż z muzyką i pokaż</b> – skleja cały dotychczasowy film z tą wersją i z prawdziwą piosenką, i odtwarza od 4 s przed szwem. Pod spodem pojawia się miara szwu (zielona = gładko, żółta = możliwy skok).</li>
+<li><b>Zaakceptuj</b> – ta wersja staje się częścią filmu.</li>
+<li><b>Odrzuć</b> – apka pyta o powód i zapisuje go w logu (przycisk Reguły u góry). Plik zostaje na dysku.</li>
+<li><b>Usuń wersję</b> – wersja znika z apki, plik wideo zostaje na dysku.</li>
+<li><b>Użyj tego promptu</b> – wstawia prompt tej wersji do edytora, żeby go poprawić i przerenderować jako kolejną wersję.</li>
+</ul>
+
+<h2>4. Łączenie z resztą filmu</h2>
+<ul>
+<li><b>Nie ma osobnego kroku łączenia.</b> Zaakceptowanie chunka oznacza, że wchodzi do filmu.</li>
+<li>Film = film sprzed apki (z Ustawień) + wszystkie zaakceptowane chunki po kolei. Apka sama ucina klatki nakładki i podkłada piosenkę od początku.</li>
+<li>Plik z całym filmem powstaje przy każdym „Złóż z muzyką i pokaż”: <code>projects/&lt;projekt&gt;/film/film_&lt;wersja&gt;.mp4</code>. Najnowszy złożony przy ostatnim chunku to aktualny cały film.</li>
+<li>Zmiana decyzji: zaakceptuj inną wersję tego samego chunka, a film przełączy się na nią. Odrzucenie zaakceptowanej wersji cofa akceptację.</li>
+</ul>
+<div class="note">Kolejność przy każdym chunku: wybierz po lewej → posłuchaj → prompt → Renderuj → Złóż z muzyką i pokaż → Zaakceptuj → kliknij następny chunk.</div>
+</main></body></html>

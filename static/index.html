@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MV Studio</title>
+<style>
+:root{--bg:#15161a;--panel:#1e2026;--line:#2e313a;--text:#e8e6e1;--dim:#9a9ca5;--acc:#e0a339;--ok:#58b368;--bad:#e2604f;--warn:#e0a339;--blue:#5b9bd5}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,sans-serif}
+header{display:flex;gap:10px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+header h1{font-size:16px;margin:0 12px 0 0;color:var(--acc)}
+.pill{padding:3px 10px;border-radius:12px;border:1px solid var(--line);font-size:12px;color:var(--dim)}
+.pill.ok{color:var(--ok);border-color:var(--ok)}.pill.bad{color:var(--bad);border-color:var(--bad)}.pill.busy{color:var(--warn);border-color:var(--warn)}
+main{display:grid;grid-template-columns:270px 1fr;height:calc(100vh - 53px)}
+aside{border-right:1px solid var(--line);overflow:auto;padding:10px}
+section{overflow:auto;padding:16px 20px 60px}
+button,select,input,textarea{font:inherit;color:var(--text);background:#262830;border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+button{cursor:pointer}button:hover{border-color:var(--acc)}
+button.primary{background:var(--acc);color:#1a1300;border-color:var(--acc);font-weight:600}
+button.ok{border-color:var(--ok);color:var(--ok)}button.bad{border-color:var(--bad);color:var(--bad)}
+button:disabled{opacity:.45;cursor:default}
+textarea{width:100%;font:13px/1.4 ui-monospace,monospace;resize:vertical}
+.chunk{padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;cursor:pointer;background:var(--panel)}
+.chunk.sel{border-color:var(--acc)}
+.chunk b{display:block}.chunk small{color:var(--dim)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:var(--dim)}
+.dot.accepted{background:var(--ok)}.dot.done{background:var(--blue)}.dot.running{background:var(--warn)}.dot.rejected,.dot.error{background:var(--bad)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.card h2{font-size:14px;margin:0 0 10px;color:var(--acc)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+label{display:block;font-size:12px;color:var(--dim)}label input,label select{width:100%;margin-top:3px}
+.nums{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.num{background:#262830;border-radius:8px;padding:8px 10px}.num span{display:block;font-size:11px;color:var(--dim)}.num b{font-size:15px}
+.msg{padding:6px 10px;border-radius:6px;margin-top:6px;font-size:13px}
+.msg.warn{background:#3a2f14;color:#f1c873}.msg.error{background:#3d1d19;color:#f29b8e}.msg.good{background:#1b3322;color:#8fd19b}
+.words{display:flex;flex-wrap:wrap;gap:5px}.words span{background:#262830;border-radius:5px;padding:2px 7px;font-size:12px;cursor:pointer}
+.words span.on{background:var(--acc);color:#1a1300}.words span.on i{color:#1a1300}
+.words span i{color:var(--dim);font-style:normal;margin-left:5px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+pre{background:#101114;border:1px solid var(--line);border-radius:6px;padding:10px;overflow:auto;max-height:260px;font-size:12px;white-space:pre-wrap;word-break:break-all;margin:10px 0 0}
+video{width:100%;max-width:900px;border-radius:8px;margin-top:10px;background:#000}
+.render{border-top:1px solid var(--line);padding:10px 0}.render:first-of-type{border-top:0}
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:20px;width:min(720px,92vw)}
+dialog::backdrop{background:#000a}
+.empty{color:var(--dim);padding:40px;text-align:center}
+@media(max-width:800px){main{grid-template-columns:1fr;height:auto}aside{border-right:0;border-bottom:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>MV Studio</h1>
+  <select id="proj"></select>
+  <button onclick="newProject()">Nowy projekt</button>
+  <button onclick="view='song';drawList();drawSong()">Piosenka i podział</button>
+  <button onclick="openSettings()">Ustawienia</button>
+  <button onclick="openRules()">Reguły</button>
+  <a id="helplink" href="/instrukcja.html" style="color:var(--acc)">Instrukcja</a>
+  <select id="langsel" onchange="setLang(this.value)" title="Język / Language"><option value="pl">PL</option><option value="en">EN</option></select>
+  <span style="flex:1"></span>
+  <span class="pill" id="comfy" onclick="checkComfy()" style="cursor:pointer" title="Kliknij, żeby sprawdzić">ComfyUI: ?</span>
+  <span class="pill" id="job">render: —</span>
+</header>
+<main>
+  <aside><div id="list"></div><button style="width:100%" onclick="addChunk()">+ Dodaj chunk</button></aside>
+  <section id="main"><div class="empty">Wybierz albo utwórz projekt.</div></section>
+</main>
+<dialog id="dlg"></dialog>
+<script src="/i18n.js"></script>
+<script>
+let S=null, cur=null, sel=null, shown={}, view='chunks';
+const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function api(path,body){
+  const r=await fetch('/api/'+path,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{});
+  const j=await r.json(); if(j.error) throw new Error(j.error); return j;
+}
+const fail=e=>alert(e.message);
+const t=x=>x==null?'—':(+x).toFixed(2)+' s';
+const media=p=>'/media?path='+encodeURIComponent(p);
+
+async function init(){
+  $('langsel').value=LANG; if(LANG==='en') $('helplink').href='/instructions_en.html';
+  const ps=await api('projects');
+  $('proj').innerHTML=ps.map(p=>`<option>${esc(p)}</option>`).join('')||'<option value="">— brak projektów —</option>';
+  $('proj').onchange=()=>{cur=$('proj').value;sel=null;view='chunks';localStorage.mvs=cur;refresh()};
+  cur=ps.includes(localStorage.mvs)?localStorage.mvs:ps[0]; if(cur){$('proj').value=cur;await refresh();checkComfy()}
+}
+async function refresh(keep){
+  if(!cur) return;
+  S=await api('p/'+cur);
+  if(!sel||!S.project.chunks.find(c=>c.id===sel)) sel=S.project.chunks[0]?.id||null;
+  if(!S.project.chunks.length&&!S.project.proposal.length) view='song';
+  drawList(); drawJob(); if(!keep) (view==='song'?drawSong():drawChunk());
+}
+function chunkState(c){
+  if(c.accepted) return 'accepted';
+  const r=c.renders[c.renders.length-1]; return r?r.status:'';
+}
+function drawList(){
+  $('list').innerHTML=S.project.chunks.map(c=>`<div class="chunk ${view==='chunks'&&c.id===sel?'sel':''}" onclick="view='chunks';sel='${c.id}';drawList();drawChunk()">
+    <b><span class="dot ${chunkState(c)}"></span>${esc(c.name||'?')} <small>${esc(c.section||'')}</small></b>
+    <small>${t(c.start)} – ${t(c.end)} · ${c.mode==='start'?'świeży start':'extend'}</small></div>`).join('');
+}
+function drawJob(){
+  const j=S.job, el=$('job');
+  if(j.state==='idle'){el.className='pill';el.textContent='render: —'+(j.last?` (ostatni: ${j.last} → ${j.last_status})`:'')}
+  else{el.className='pill busy';el.textContent=`render: ${j.render||''} · ${((Date.now()/1000-j.started)/60).toFixed(0)} min`}
+  const lg=$('joblog'); if(lg&&j.tail) lg.textContent=j.tail;
+}
+async function checkComfy(){
+  const q=await api('p/'+cur+'/comfy'), el=$('comfy');
+  el.className='pill '+(q.up?(q.running||q.pending?'busy':'ok'):'bad');
+  el.textContent='ComfyUI: '+(q.up?(q.running||q.pending?`zajęte (${q.running} w toku, ${q.pending} czeka)`:'wolne'):'nie działa');
+}
+
+function drawChunk(){
+  const c=S.project.chunks.find(x=>x.id===sel), m=$('main');
+  if(!c){m.innerHTML='<div class="empty">Brak chunków. Dodaj pierwszy po lewej.</div>';return}
+  const i=S.project.chunks.indexOf(c), I=S.timeline[i], busy=S.job.state!=='idle';
+  const words=I.ready?S.words.filter(w=>w.s>=I.prefix_end-0.3&&w.s<=I.end+0.5):[];
+  const lo=Math.min(+c.start||0,I.ready?I.raw0:1e9), hi=Math.max(+c.end||0,I.ready?I.end:0);
+  const awords=S.words.filter(w=>w.e>=lo-0.3&&w.s<=hi+0.3), lines=S.lines.filter(l=>l.start<hi&&l.end>lo);
+  auRaw0=I.ready?I.raw0:null;
+  const last=c.renders[c.renders.length-1], acc=c.renders.find(r=>r.name===c.accepted);
+  const state=acc?`<span class="dot accepted"></span>Zaakceptowany: <b>${esc(acc.name)}</b>`
+    :last&&last.status==='done'?`<span class="dot done"></span>Wersja <b>${esc(last.name)}</b> czeka na Twoją ocenę`
+    :last&&last.status==='running'?`<span class="dot running"></span>Renderuje się: <b>${esc(last.name)}</b>`
+    :last?`<span class="dot ${last.status}"></span>Ostatnia wersja <b>${esc(last.name)}</b>: ${esc(last.status)}`:'<span class="dot"></span>Jeszcze bez renderu';
+  m.innerHTML=`
+  <div class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b style="font-size:16px">${esc(c.name)}</b><span style="flex:1">${state}</span>
+    ${!acc&&last&&last.status==='done'?`<button onclick="assemble('${last.name}')">Złóż z muzyką i pokaż</button><button class="ok" onclick="verdict('${last.name}','accept')">Zaakceptuj</button><button class="bad" onclick="verdict('${last.name}','reject')">Odrzuć</button>`:''}
+    <button class="bad" onclick="removeChunk()">Usuń chunk</button></div>
+  <div class="card"><h2>1. Chunk</h2>
+    <div class="grid">
+      <label>Nazwa (np. V21)<input id="f_name" value="${esc(c.name)}"></label>
+      <label>Sekcja<input id="f_section" value="${esc(c.section)}"></label>
+      <label>Początek w piosence (s)<input id="f_start" type="number" step="0.01" value="${esc(c.start)}"></label>
+      <label>Koniec w piosence (s)<input id="f_end" type="number" step="0.01" value="${esc(c.end)}"></label>
+      <label>Tryb<select id="f_mode"><option value="extend">extend (ciągłość)</option><option value="start">świeży start (cięcie)</option></select></label>
+      <label>Zamówione sekundy<input id="f_order" type="number" step="0.1" value="${esc(c.order)}"></label>
+      <label>Seed<input id="f_seed" type="number" value="${esc(c.seed??S.project.seed)}"></label>
+      <label>Refki (puste = z projektu)<input id="f_refs" value="${esc(c.refs)}" placeholder="${esc(S.project.refs)}"></label>
+    </div>
+    <div class="grid" id="startonly" style="margin-top:10px">
+      <label>Still bazowy (w ComfyUI/output)<input id="f_base" value="${esc(c.base)}" placeholder="kliknij „Zrób still z refki”"></label>
+      <label>&nbsp;<button style="width:100%;margin-top:3px" onclick="makeStill()">Zrób still z refki</button></label>
+      <label>Klatka cięcia w filmie<input id="f_cut_frame" type="number" value="${esc(c.cut_frame)}" placeholder="${I.J??''}"></label>
+      <label>Pominięte klatki nowego klipu<input id="f_lead" type="number" value="${esc(c.lead??S.project.lead)}"></label>
+    </div>
+    <label style="margin-top:10px">Tekst śpiewany w tym chunku<textarea id="f_text" rows="2">${esc(c.text)}</textarea></label>
+    <div class="row"><button class="primary" onclick="saveChunk()">Zapisz</button><button onclick="fillText()">Wstaw tekst z fraz</button>
+</div>
+  </div>
+  <div class="card"><h2>Podgląd filmu i podsłuch chunka</h2>
+    <div class="row" style="margin:0 0 10px"><button class="primary" onclick="filmBefore(8)">▶ Film do tego miejsca (ostatnie 8 s)</button>
+      <button onclick="filmBefore(0)">▶ Film od początku</button><span style="color:var(--dim)">obraz z muzyką, tak jak jest teraz przed tym chunkiem</span></div>
+    <div id="filmbefore"></div>
+    <p style="color:var(--dim);margin:14px 0 6px">Muzyka tego chunka (jeszcze bez obrazu):</p>
+    <audio id="au" controls preload="metadata" src="${media(S.song_path)}" style="width:100%"></audio>
+    <div class="row"><button class="primary" onclick="playRange(+val('f_start'),+val('f_end'))">▶ Chunk</button>
+      ${I.ready?`<button onclick="playRange(${I.prefix_end},${I.end})">▶ Nowy materiał klipu</button><button onclick="playRange(${I.raw0},${I.end})">▶ Cały klip z prefiksem</button>`:''}
+      <button onclick="$('au').pause()">Stop</button><span id="autime" style="color:var(--dim)"></span></div>
+    ${lines.map(l=>`<div style="margin-top:8px"><small style="color:var(--dim)">${t(l.start)} – ${t(l.end)}</small> ${esc(l.text)}</div>`).join('')||'<div style="margin-top:8px;color:var(--dim)">Brak fraz w tym zakresie (instrumentalny?).</div>'}
+    <p style="color:var(--dim);margin:12px 0 6px">Słowa z czasem w piosence (Whisper, przybliżone) — kliknij słowo, żeby zagrać od niego:</p>
+    <div class="words" id="auwords">${awords.map(w=>`<span data-s="${w.s}" data-e="${w.e}" onclick="playRange(${(w.s-0.1).toFixed(2)},${hi})">${esc(w.w)}<i>${w.s.toFixed(2)}</i></span>`).join('')||'<span>brak słów</span>'}</div>
+  </div>
+  <div class="card"><h2>2. Wyliczenia (apka liczy sama)</h2>
+    ${I.ready?`<div class="nums">
+      <div class="num"><span>Film przed chunkiem</span><b>${I.J} kl. (${t(I.J/S.project.fps)})</b></div>
+      <div class="num"><span>raw0 (czas 0 w prompcie)</span><b>${t(I.raw0)}</b></div>
+      <div class="num"><span>Prefiks kończy się</span><b>${t(I.prefix_end)}</b></div>
+      <div class="num"><span>Klatki klipu ${I.end_measured?'(zmierzone)':'(przewidywane)'}</span><b>${I.frames??'?'}</b></div>
+      <div class="num"><span>Koniec klipu w piosence</span><b>${t(I.end)}</b></div>
+      <div class="num"><span>Audio master</span><b>od ${t(I.master.ss)}, ${I.master.t} s</b></div>
+      <div class="num"><span>Audio ref</span><b>od ${t(I.ref.ss)}, ${I.ref.t} s</b></div>
+      <div class="num"><span>Baza</span><b style="font-size:12px;word-break:break-all">${esc(I.base||'brak')}</b></div></div>`:''}
+    ${I.warn.map(w=>`<div class="msg warn">${esc(w)}</div>`).join('')||'<div class="msg good">Bez ostrzeżeń.</div>'}
+    ${words.length?`<p style="color:var(--dim);margin:12px 0 6px">Słowa (Whisper, przybliżone) w czasie klipu — kliknij, żeby wstawić linijkę czasu do promptu:</p>
+    <div class="words">${words.map(w=>`<span onclick="insTime(${(w.s-I.raw0).toFixed(2)},${(w.e-I.raw0).toFixed(2)},'${esc(w.w).replace(/'/g,"\\'")}')">${esc(w.w)}<i>${(w.s-I.raw0).toFixed(2)}–${(w.e-I.raw0).toFixed(2)}</i></span>`).join('')}</div>`:''}
+  </div>
+  <div class="card"><h2>3. Prompt</h2>
+    <textarea id="f_prompt" rows="18" spellcheck="false">${esc(c.prompt)}</textarea>
+    <div class="row"><button onclick="template()">Wstaw szablon</button><button onclick="check()">Sprawdź prompt</button><button onclick="saveChunk()">Zapisz</button>
+      ${i>0?`<button onclick="copyPrev()">Skopiuj prompt z poprzedniego chunka</button>`:''}</div>
+    <div id="issues"></div>
+  </div>
+  <div class="card"><h2>4. Render</h2>
+    <div class="row" style="margin-top:0"><button onclick="render(true)">Pokaż polecenia (na sucho)</button>
+      <button class="primary" onclick="render(false)" ${busy||!I.ready?'disabled':''}>Renderuj</button>
+      <button class="bad" onclick="stop()" ${busy?'':'disabled'}>Przerwij</button>
+      <span style="color:var(--dim)">Tryb: ${S.project.steps} kroków · jeden render naraz</span></div>
+    <pre id="joblog" ${busy||shown.dry?'':'hidden'}></pre>
+  </div>
+  <div class="card"><h2>5. Wersje i akceptacja</h2>
+    ${c.renders.length?c.renders.slice().reverse().map(r=>renderRow(c,r,I)).join(''):'<span style="color:var(--dim)">Jeszcze nic nie wyrenderowano.</span>'}
+  </div>`;
+  $('f_mode').value=c.mode; $('f_mode').onchange=()=>$('startonly').hidden=$('f_mode').value!=='start'; $('f_mode').onchange();
+  drawJob();
+}
+async function filmBefore(tail){
+  const el=$('filmbefore'); el.innerHTML='<div class="msg warn">Składam film… (pierwszy raz trwa kilkanaście sekund)</div>';
+  try{const r=await api('p/'+cur+'/film_before',{id:sel}), st=tail?Math.max(0,r.frames/S.project.fps-tail):0;
+    el.innerHTML=`<video controls autoplay src="${media(r.film)}#t=${st.toFixed(1)}"></video><div style="color:var(--dim);font-size:12px">${r.frames} klatek (${t(r.frames/S.project.fps)}) · ${esc(r.film)}</div>`;
+  }catch(e){el.innerHTML='';fail(e)}
+}
+function drawSong(){
+  const p=S.project, A=S.analyze, run=A.state==='running';
+  const flag=l=>l.start==null?'<span style="color:var(--bad)">brak czasu – wpisz ręcznie</span>':(l.matched<l.total?`<span style="color:var(--warn)">${l.matched}/${l.total} słów – sprawdź</span>`:'<span style="color:var(--ok)">ok</span>');
+  auRaw0=null;
+  $('main').innerHTML=`
+  <div class="card"><h2>1. Piosenka</h2>
+    ${p.song?`<div style="margin-bottom:8px">${esc(p.song)} <small style="color:var(--dim)">w ${esc(p.dir)}</small></div>
+    <audio id="au" controls preload="metadata" src="${media(S.song_path)}" style="width:100%"></audio><span id="autime" hidden></span><span id="auwords" hidden></span>`:'<div style="color:var(--dim)">Jeszcze nie ma piosenki.</div>'}
+    <div class="row"><input type="file" id="songfile" accept=".wav,.mp3,.flac,.m4a,.ogg"><button onclick="uploadSong()">Wgraj piosenkę</button><span id="upmsg" style="color:var(--dim)"></span></div>
+  </div>
+  <div class="card"><h2>2. Tekst</h2>
+    <p style="color:var(--dim);margin:0 0 8px">Jedna linijka = jedna śpiewana fraza. Sekcje oznacz osobną linią w nawiasach, np. [Zwrotka 1], [Refren]. Cięcie nigdy nie wypada w środku linijki.</p>
+    <textarea id="ly" rows="12" spellcheck="false">${esc(p.lyrics_text)}</textarea>
+    <div class="grid" style="margin-top:10px">
+      <label>Maksymalna długość chunka (s)<input id="mx" type="number" step="0.5" value="${esc(p.max_chunk)}"></label>
+      <label>Język<input id="lang" value="${esc(p.language)}"></label>
+      <label>Model Whisper<select id="wm"><option>base</option><option>small</option><option>medium</option><option>large</option></select></label></div>
+    <div class="row"><button class="primary" onclick="runAnalyze(true)" ${run?'disabled':''}>Analizuj i potnij</button>
+      <button onclick="runAnalyze(false)" ${run||!S.lines.length?'disabled':''}>Potnij ponownie (bez Whispera)</button></div>
+    ${A.msg?`<div class="msg ${run?'warn':(A.msg.startsWith('Blad')?'error':'good')}">${esc(A.msg)}${run?` (${((Date.now()/1000-A.started)/60).toFixed(1)} min)`:''}</div>`:''}
+  </div>
+  <div class="card"><h2>3. Frazy z czasami</h2>
+    ${S.lines.length?`<p style="color:var(--dim);margin:0 0 8px">Czasy są z Whispera, więc przybliżone. Posłuchaj (▶) i popraw, gdzie trzeba, potem „Zapisz czasy i potnij ponownie”.</p>
+    ${S.lines.map((l,i)=>`<div class="row" style="margin-top:4px;flex-wrap:nowrap"><button onclick="playRange(${l.start??0},${l.end??0})" ${l.start==null?'disabled':''}>▶</button>
+      <input class="ls" data-i="${i}" type="number" step="0.01" value="${l.start??''}" style="width:90px"><input class="le" data-i="${i}" type="number" step="0.01" value="${l.end??''}" style="width:90px">
+      <span style="flex:1">${l.section?`<small style="color:var(--acc)">[${esc(l.section)}]</small> `:''}${esc(l.text)}</span><small>${flag(l)}</small></div>`).join('')}
+    <div class="row"><button onclick="saveLines()">Zapisz czasy i potnij ponownie</button></div>`:'<span style="color:var(--dim)">Pojawią się po analizie.</span>'}
+  </div>
+  <div class="card"><h2>4. Propozycja chunków</h2>
+    ${p.proposal.length?`<p style="color:var(--dim);margin:0 0 8px">${p.proposal.length} chunków, najdłuższy ${Math.max(...p.proposal.map(c=>c.end-c.start)).toFixed(1)} s.</p>
+    ${p.proposal.map((c,i)=>`<div class="row" style="margin-top:4px;flex-wrap:nowrap"><button onclick="playRange(${c.start},${c.end})">▶</button>
+      <b style="width:38px">V${i+1}</b><small style="width:150px;color:var(--dim)">${c.start.toFixed(2)} – ${c.end.toFixed(2)} (${(c.end-c.start).toFixed(1)} s)</small>
+      <span style="flex:1">${c.section?`<small style="color:var(--acc)">[${esc(c.section)}]</small> `:''}${esc(c.text)||'<i style="color:var(--dim)">bez wokalu</i>'}</span>
+      ${c.long?'<small style="color:var(--warn)">fraza dłuższa niż limit</small>':''}</div>`).join('')}
+    <div class="row"><button class="primary" onclick="applyProposal()">Wstaw do planu chunków</button></div>`:'<span style="color:var(--dim)">Pojawi się po analizie.</span>'}
+  </div>`;
+  $('wm').value=p.whisper_model;
+}
+async function saveSong(){await api('p/'+cur+'/settings',{lyrics_text:val('ly'),max_chunk:+val('mx')||8,language:val('lang'),whisper_model:val('wm')})}
+async function uploadSong(){
+  const f=$('songfile').files[0]; if(!f) return alert('Wybierz plik.');
+  $('upmsg').textContent='Wgrywam…';
+  try{await saveSong(); const r=await fetch('/api/p/'+cur+'/upload?name='+encodeURIComponent(f.name),{method:'POST',body:f}); const j=await r.json(); if(j.error) throw new Error(j.error); await refresh()}
+  catch(e){$('upmsg').textContent='';fail(e)}
+}
+async function runAnalyze(whisper){
+  try{ if(whisper&&S.lines.length&&!confirm('Whisper policzy czasy fraz od nowa (ręczne poprawki czasów przepadną). Kontynuować?')) return;
+    await saveSong(); await api('p/'+cur+'/analyze',{whisper}); await refresh() }catch(e){fail(e)}
+}
+async function saveLines(){
+  const L=S.lines.map(l=>({...l}));
+  document.querySelectorAll('.ls').forEach(e=>L[e.dataset.i].start=e.value===''?null:+e.value);
+  document.querySelectorAll('.le').forEach(e=>L[e.dataset.i].end=e.value===''?null:+e.value);
+  try{await saveSong(); await api('p/'+cur+'/analyze',{lines:L}); await refresh()}catch(e){fail(e)}
+}
+async function applyProposal(){
+  if(!confirm('Wstawić '+S.project.proposal.length+' chunków do planu?')) return;
+  try{await api('p/'+cur+'/apply_proposal',{}); view='chunks'; sel=null; await refresh()}catch(e){fail(e)}
+}
+let auStop=null, auRaw0=null;
+function playRange(a,b){const au=$('au'); auStop=b; au.currentTime=Math.max(0,a); au.play()}
+function auTick(){
+  const au=$('au');
+  if(au&&!au.paused){
+    const x=au.currentTime; if(auStop!=null&&x>=auStop){au.pause();auStop=null}
+    if($('autime')) $('autime').textContent=`piosenka ${x.toFixed(2)} s`+(auRaw0!=null?` · czas w prompcie ${(x-auRaw0).toFixed(2)} s`:'');
+    if($('autime')) for(const el of $('auwords').children) el.classList.toggle('on',x>=+el.dataset.s&&x<Math.max(+el.dataset.e,+el.dataset.s+0.12));
+  }
+  requestAnimationFrame(auTick);
+}
+requestAnimationFrame(auTick);
+function renderRow(c,r,I){
+  const seam=r.seam?`szew w klatce ${r.seam_frame}: skok ${r.seam.at} przy medianie ${r.seam.median} (×${r.seam.ratio}) ${r.seam.ratio>4?'— możliwa nieciągłość':'— gładko'}`:'';
+  const k=c.id+r.name;
+  return `<div class="render"><b><span class="dot ${r.status}"></span>${esc(r.name)}</b>
+    <small style="color:var(--dim)"> ${esc(r.status)} · ${esc(r.created||'')} ${r.frames?`· ${r.frames} kl.`:''} ${r.minutes?`· ${r.minutes} min`:''}</small>
+    ${r.reason?`<div class="msg error">Odrzucony: ${esc(r.reason)}</div>`:''}
+    ${seam?`<div class="msg ${r.seam.ratio>4?'warn':'good'}">${seam}</div>`:''}
+    <div class="row">
+      ${r.file?`<button onclick="show('${k}','${r.name}')">Pokaż klip</button>
+      <button onclick="assemble('${r.name}')">Złóż z muzyką i pokaż</button>
+      <button class="ok" onclick="verdict('${r.name}','accept')" ${c.accepted===r.name?'disabled':''}>${c.accepted===r.name?'Zaakceptowany':'Zaakceptuj'}</button>
+      <button class="bad" onclick="verdict('${r.name}','reject')">Odrzuć</button>`:''}
+      <button onclick="showLog('${r.name}','${k}')">Log</button>
+      <button onclick="usePrompt('${r.name}')">Użyj tego promptu</button>
+      ${r.status!=='running'?`<button onclick="removeRender('${r.name}')">Usuń wersję</button>`:''}
+    </div><div id="v_${k}">${shown[k]||''}</div></div>`;
+}
+function val(id){const e=$(id);return e?e.value:undefined}
+function form(){
+  const c={id:sel};
+  for(const k of ['name','section','text','mode','refs','base','prompt']) c[k]=val('f_'+k);
+  for(const k of ['start','end','order','seed','cut_frame','lead']){const v=val('f_'+k); c[k]=v===''||v==null?null:+v}
+  return c;
+}
+async function saveChunk(){try{await api('p/'+cur+'/chunk',form());await refresh()}catch(e){fail(e)}}
+async function addChunk(){
+  if(!cur) return alert('Najpierw projekt.');
+  const last=S.project.chunks.at(-1), n=S.project.chunks.length+1;
+  try{const r=await api('p/'+cur+'/chunk',{name:'V'+n,section:last?.section||'',start:last?.end||0,end:(last?.end||0)+7,text:'',mode:'extend',order:8.4,prompt:''});
+    sel=r.id;await refresh()}catch(e){fail(e)}
+}
+async function removeChunk(){
+  const c=S.project.chunks.find(c=>c.id===sel), n=c.renders.length;
+  if(!confirm(n?'Ten chunk ma wersje wideo. Usunąć go z planu razem z nimi? Pliki wideo zostają na dysku.':'Usunąć chunk z planu? Pliki na dysku zostają.')) return;
+  try{await api('p/'+cur+'/chunk/remove',{id:sel,force:true});sel=null;await refresh()}catch(e){fail(e)}
+}
+async function removeRender(name){
+  if(!confirm('Usunąć tę wersję z apki? Plik wideo zostaje na dysku.')) return;
+  try{await api('p/'+cur+'/render/remove',{id:sel,render:name});await refresh()}catch(e){fail(e)}
+}
+function fillText(){
+  const a=+val('f_start'),b=+val('f_end');
+  $('f_text').value=S.lines.filter(l=>l.start<b&&l.end>a).map(l=>l.text).join(' / ')||'(brak fraz w tym zakresie)';
+}
+function insTime(a,b,w){
+  const ta=$('f_prompt'), line=`${a.toFixed(2)} to ${b.toFixed(2)} seconds: he sings "${w}", his lips moving clearly, \n`;
+  const p=ta.selectionStart; ta.value=ta.value.slice(0,p)+line+ta.value.slice(p); ta.focus(); ta.selectionStart=ta.selectionEnd=p+line.length-1;
+}
+async function makeStill(){try{await api('p/'+cur+'/chunk',form());await api('p/'+cur+'/still',{id:sel});await refresh()}catch(e){fail(e)}}
+async function template(){
+  if($('f_prompt').value.trim()&&!confirm('Zastąpić obecny prompt szablonem?')) return;
+  const c=S.project.chunks.find(c=>c.id===sel); const ph=LANG==='en'?'SUNG TEXT OF THIS CHUNK':'TEKST SPIEWANY W TYM CHUNKU';
+  let x=await (await fetch(LANG==='en'?'/prompt_template_en.txt':'/prompt_szablon.txt')).text();
+  $('f_prompt').value=x.replace(ph,(c.text||'').replace(/ \/ /g,' ')||ph);
+}
+function copyPrev(){const i=S.project.chunks.findIndex(c=>c.id===sel); if(confirm('Zastąpić prompt promptem z poprzedniego chunka?')) $('f_prompt').value=S.project.chunks[i-1].prompt||''}
+function usePrompt(name){const r=S.project.chunks.find(c=>c.id===sel).renders.find(r=>r.name===name); if(confirm('Wstawić prompt z wersji '+name+'?')) $('f_prompt').value=r.prompt||''}
+async function check(){
+  try{await api('p/'+cur+'/chunk',form());
+    const r=await api('p/'+cur+'/validate',{id:sel,prompt:val('f_prompt')});
+    $('issues').innerHTML=(r.issues.map(x=>`<div class="msg ${x.level}">${esc(x.msg)}</div>`).join('')||'<div class="msg good">Prompt przeszedł walidację.</div>')
+      +(r.rules.length?'<p style="color:var(--dim);margin:12px 0 4px">Checklista reguł (sprawdź sam):</p>'+r.rules.map(x=>`<label style="font-size:13px;color:var(--text)"><input type="checkbox" style="width:auto"> ${esc(x.text)}</label>`).join(''):'');
+  }catch(e){fail(e)}
+}
+async function render(dry){
+  try{
+    if(!dry&&!confirm('Uruchomić render w ComfyUI? To zajmie GPU na ok. 25–45 min.')) return;
+    await api('p/'+cur+'/chunk',form());
+    const r=await api('p/'+cur+'/render',{id:sel,prompt:val('f_prompt'),dry});
+    if(dry){shown.dry=1;await refresh();const P=r.plan;
+      $('joblog').hidden=false;$('joblog').textContent=`Render: ${P.name}\nComfyUI: ${r.comfy.up?(r.comfy.running?'ZAJĘTE':'wolne'):'NIE DZIAŁA'}\n`
+        +(r.errors.length?'BŁĘDY PROMPTU:\n  '+r.errors.join('\n  ')+'\n':'')+'\n'+P.audio.map(a=>'$ '+a.join(' ')).join('\n')
+        +'\n$ '+Object.entries(P.env).map(([k,v])=>k+'='+v).join(' ')+' '+P.run.join(' ');}
+    else{shown.dry=0;await refresh()}
+  }catch(e){fail(e)}
+}
+async function stop(){if(confirm('Przerwać trwający render?'))try{await api('p/'+cur+'/interrupt',{});await refresh()}catch(e){fail(e)}}
+function show(k,name){
+  const c=S.project.chunks.find(c=>c.id===sel), r=c.renders.find(r=>r.name===name);
+  const path=S.outdir+'/'+r.file;
+  shown[k]=`<video controls autoplay src="${media(path)}"></video><div style="color:var(--dim);font-size:12px">${esc(path)}</div>`;
+  $('v_'+k).innerHTML=shown[k];
+}
+async function assemble(name){
+  const k=sel+name; $('v_'+k).innerHTML='<div class="msg warn">Składam film z muzyką…</div>'; $('v_'+k).scrollIntoView({block:'center'});
+  try{await api('p/'+cur+'/assemble',{id:sel,render:name});await refresh(true);
+    const c=S.project.chunks.find(c=>c.id===sel), r=c.renders.find(r=>r.name===name), st=Math.max(0,r.seam_frame/S.project.fps-4);
+    shown[k]=`<video controls autoplay src="${media(r.film)}#t=${st.toFixed(1)}"></video><div style="color:var(--dim);font-size:12px">Cały film z muzyką, start 4 s przed szwem · ${esc(r.film)}</div>`;
+    drawChunk();
+  }catch(e){$('v_'+k).innerHTML='';fail(e)}
+}
+async function verdict(name,v){
+  let reason=''; if(v==='reject'){reason=prompt('Powód odrzucenia (zapisze się w logu):'); if(reason===null) return}
+  try{await api('p/'+cur+'/verdict',{id:sel,render:name,verdict:v,reason});await refresh()}catch(e){fail(e)}
+}
+async function showLog(name,k){const r=await api('p/'+cur+'/log?render='+encodeURIComponent(name));shown[k]=`<pre>${esc(r.log||'(pusty)')}</pre>`;$('v_'+k).innerHTML=shown[k]}
+
+function newProject(){
+  $('dlg').innerHTML=`<h2 style="margin-top:0">Nowy projekt</h2>
+    <label>Nazwa (bez spacji)<input id="n_name"></label><br>
+    <label>Folder projektu (puste = apka zrobi własny)<input id="n_dir" placeholder="/media/.../Moja piosenka"></label><br>
+    <label>Plik piosenki, jeśli już jest w tym folderze (inaczej wgrasz ją w następnym kroku)<input id="n_song"></label>
+    <div class="row"><button class="primary" onclick="createProject()">Utwórz</button><button onclick="dlg.close()">Anuluj</button></div>`;
+  $('dlg').showModal();
+}
+async function createProject(){try{await api('create',{name:val('n_name'),dir:val('n_dir'),song:val('n_song')});localStorage.mvs=val('n_name');$('dlg').close();view='song';await init()}catch(e){fail(e)}}
+function openSettings(){
+  if(!S) return; const p=S.project;
+  $('dlg').innerHTML=`<h2 style="margin-top:0">Ustawienia projektu</h2><div class="grid">
+    <label>Folder projektu<input id="s_dir" value="${esc(p.dir)}"></label>
+    <label>Piosenka<input id="s_song" value="${esc(p.song)}"></label>
+    <label>Kroki<select id="s_steps"><option value="20">20 (jakość)</option><option value="8">8 turbo (szybko)</option></select></label>
+    <label>Seed domyślny<input id="s_seed" type="number" value="${esc(p.seed)}"></label>
+    <label>Prefiks nazw renderów<input id="s_prefix" value="${esc(p.prefix)}"></label>
+    <label>Refki (ComfyUI/input, po przecinku)<input id="s_refs" value="${esc(p.refs)}"></label>
+    <label>Plik fraz (_line_times.json)<input id="s_lines" value="${esc(p.lines)}"></label>
+    <label>Plik słów (_whisper_words.json)<input id="s_words" value="${esc(p.words)}"></label></div>
+    <p style="color:var(--dim);margin:14px 0 6px">Film zrobiony przed apką (opcjonalnie): apka dokleja nowe chunki za nim.</p><div class="grid">
+    <label>Zaakceptowany film (mp4)<input id="s_bfile" value="${esc(p.base_film.file)}"></label>
+    <label>Ile klatek z niego (0 = całość)<input id="s_bframes" type="number" value="${esc(p.base_film.frames)}"></label>
+    <label>Ostatni klip (ComfyUI/output)<input id="s_bclip" value="${esc(p.base_clip)}" placeholder="moj_film/mv_V1_00001.mp4"></label></div>
+    <p style="color:var(--dim);margin:14px 0 6px">Połączenie z ComfyUI:</p><div class="grid">
+    <label>Adres ComfyUI<input id="s_curl" value="${esc(p.comfy.url)}"></label>
+    <label>Folder input<input id="s_cin" value="${esc(p.comfy.input)}"></label>
+    <label>Folder output<input id="s_cout" value="${esc(p.comfy.output)}"></label>
+    <label>Python ComfyUI (venv)<input id="s_cpy" value="${esc(p.comfy.python)}"></label>
+    <label>Skrypt renderu<input id="s_crun" value="${esc(p.comfy.runner)}"></label></div>
+    <label style="margin-top:10px">Zakazane słowa w promptach (po przecinku)<input id="s_forb" value="${esc(p.forbidden.join(', '))}"></label>
+    <div class="row"><button class="primary" onclick="saveSettings()">Zapisz</button><button onclick="dlg.close()">Zamknij</button></div>`;
+  $('s_steps').value=String(p.steps); $('dlg').showModal();
+}
+async function saveSettings(){
+  try{await api('p/'+cur+'/settings',{dir:val('s_dir'),song:val('s_song'),steps:val('s_steps'),seed:+val('s_seed'),prefix:val('s_prefix'),refs:val('s_refs'),
+    lines:val('s_lines'),words:val('s_words'),base_film:{file:val('s_bfile'),frames:+val('s_bframes')||0},base_clip:val('s_bclip'),comfy:{url:val('s_curl'),input:val('s_cin'),output:val('s_cout'),python:val('s_cpy'),runner:val('s_crun')},
+    forbidden:val('s_forb').split(',').map(x=>x.trim()).filter(Boolean)});$('dlg').close();await refresh()}catch(e){fail(e)}
+}
+function openRules(){
+  if(!S) return; const p=S.project;
+  $('dlg').innerHTML=`<h2 style="margin-top:0">Reguły (checklista przy każdym prompcie)</h2>
+    ${p.rules.map((r,i)=>`<div class="row" style="margin-top:6px"><span style="flex:1">${esc(r.text)} <small style="color:var(--dim)">${esc(r.date)}</small></span><button onclick="rule({remove:${i}})">Usuń</button></div>`).join('')||'<span style="color:var(--dim)">Brak reguł.</span>'}
+    <div class="row"><input id="r_text" style="flex:1" placeholder="np. zamknięte usta dopiero po ostatniej sylabie"><button class="primary" onclick="rule({text:val('r_text')})">Dodaj</button></div>
+    <p style="color:var(--dim);margin:16px 0 6px">Log odrzuceń:</p>
+    ${p.rejects.slice().reverse().map(r=>`<div style="font-size:13px">${esc(r.date)} · <b>${esc(r.render)}</b>: ${esc(r.reason)}</div>`).join('')||'<span style="color:var(--dim)">Pusty.</span>'}
+    <div class="row"><button onclick="dlg.close()">Zamknij</button></div>`;
+  $('dlg').showModal();
+}
+async function rule(b){try{if(b.text===''||(b.text==null&&b.remove==null))return;await api('p/'+cur+'/rule',b);await refresh(true);openRules()}catch(e){fail(e)}}
+
+setInterval(async()=>{ if(S&&S.analyze.state==='running'){S=await api('p/'+cur); if(view==='song'&&(S.analyze.state!=='running'||document.activeElement.tagName!=='TEXTAREA'&&document.activeElement.tagName!=='INPUT')) drawSong(); return}
+  if(!S||S.job.state==='idle') return; const was=S.job.state; S=await api('p/'+cur); drawJob(); drawList(); const c=S.project.chunks.find(c=>c.id===sel); if(S.job.state==='idle'&&was!=='idle'&&(!$('f_prompt')||!c||$('f_prompt').value===(c.prompt||''))) drawChunk() },4000);
+init().catch(fail);
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+subject_definitions:
+<Subject 1> is IMIE, the singer shown in <Picture 1> and <Picture 2>: OPIS WYGLADU (wlosy, twarz, okulary, zarost, ubranie, bizuteria).
+<Audio 1> is the voice track for this shot, fully copied for lipsync: the sung lines.
+
+retention_analysis:
+<Subject 1> (face and hair, exactly as in <Picture 1> and <Picture 2>): fully_preserved
+<Subject 1> (clothes and build, as in <Picture 1>): preserved
+<Audio 1>: fully_copy -- exact lip-sync of the sung lines.
+
+detailed_description:
+Shot 1 is one continuous shot.
+The same shot continues as one unbroken take from the previous frames, a medium close-up of <Subject 1>, his face large and sharp. OPIS STYLU FILMU (np. shot on 35mm film with a natural photographic look, realistic skin). OPIS TLA: jak wyglada i jak sie rusza przez caly czas (always moving, pulsing gently with the music), the lighting on <Subject 1> staying even and constant.
+Exact timing, counted in seconds from the start of this shot. His mouth sings continuously from the first word to the last word of the shot, his lips moving clearly and precisely on every syllable, and it closes only after the very last note:
+TU WSTAW LINIJKI CZASU: kliknij slowa w karcie "Wyliczenia", a potem dopisz po przecinku, co robi w tym momencie (gest, spojrzenie, reakcja tla).
+<Subject 1> precisely lip-syncs his lines to <Audio 1>.
+
+@ref1 sings: TEKST SPIEWANY W TYM CHUNKU
+
+overall_soundscape: OPIS MUZYKI (np. rock band with a sung male lead vocal).
+non_diegetic_music: N/A
