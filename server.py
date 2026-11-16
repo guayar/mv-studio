@@ -92,9 +92,14 @@ def predict(p, mode, order):
     return None
 
 
+def win(p, c):
+    """Okno kontekstu (klatki ogona poprzedniego klipu) - wlasne chunka albo z projektu."""
+    return int(c.get("window") or p["window"])
+
+
 def calc(p, c, J, last_clip, words, lines):
     """Wszystkie czasy chunka. J = klatki filmu zlozonego przed tym chunkiem."""
-    fps, W, ov = p["fps"], p["window"], p["overlap"]
+    fps, W, ov = p["fps"], win(p, c), p["overlap"]
     acc = next((r for r in c["renders"] if r["name"] == c.get("accepted")), None)
     if J is None:
         return {"ready": False, "warn": ["Najpierw zaakceptuj poprzedni chunk - od niego zalezy J i raw0."]}
@@ -114,6 +119,10 @@ def calc(p, c, J, last_clip, words, lines):
     master = {"ss": round(raw0, 3), "t": round(clip_len + 1.5, 2)}
     ref = {"ss": round(cut / fps - 0.3, 3), "t": round(est / fps + 1.3, 2)} if c["mode"] == "extend" else dict(master)
     warn = []
+    if c.get("window") and W != p["window"]:
+        warn.append(f"Okno kontekstu {W} kl. zamiast {p['window']} z projektu - mniej stylu z poprzedniego klipu, wiecej z refek; ciaglosc ruchu moze byc slabsza.")
+    if c["mode"] == "extend" and W <= ov:
+        warn.append(f"Okno kontekstu {W} kl. musi byc wieksze niz nakladka {ov} kl.")
     if not base:
         warn.append("Brak bazy: ustaw klip bazowy (extend) albo still (swiezy start).")
     if tier is None:
@@ -129,7 +138,7 @@ def calc(p, c, J, last_clip, words, lines):
     if c.get("end") and e < float(c["end"]) - 0.05:
         warn.append(f"Klip skonczy sie w {e:.2f} s, przed koncem chunka ({float(c['end']):.2f} s).")
     return {"ready": True, "J": J, "cut": cut, "skip": skip, "base": base, "raw0": round(raw0, 3),
-            "prefix_end": round(prefix_end, 3), "tier": tier, "frames": fr, "end": round(e, 3),
+            "prefix_end": round(prefix_end, 3), "window": W, "tier": tier, "frames": fr, "end": round(e, 3),
             "end_measured": bool(acc), "J_after": cut + est - skip, "master": master, "ref": ref, "warn": warn}
 
 
@@ -168,9 +177,9 @@ def validate(p, prompt, info):
                 issues.append({"level": "error", "msg": f"linia {i}: koniec {b} <= poczatek {a}"})
             if prev_end is not None and abs(a - prev_end) > 0.011:
                 issues.append({"level": "error", "msg": f"linia {i}: zaczyna sie w {a}, a poprzednia konczy w {prev_end} (dziura albo nakladka)"})
-            if not seen_time and info.get("ready") and a < p["window"] / p["fps"] - 0.011:
-                issues.append({"level": "warn", "msg": f"linia {i}: pierwszy czas {a} s jest w zamrozonym prefiksie (do {p['window'] / p['fps']:.2f} s)"})
-            if info.get("ready") and info.get("frames") and a > (info["frames"] + p["window"]) / p["fps"]:
+            if not seen_time and info.get("ready") and a < info.get("window", p["window"]) / p["fps"] - 0.011:
+                issues.append({"level": "warn", "msg": f"linia {i}: pierwszy czas {a} s jest w zamrozonym prefiksie (do {info.get('window', p['window']) / p['fps']:.2f} s)"})
+            if info.get("ready") and info.get("frames") and a > (info["frames"] + info.get("window", p["window"])) / p["fps"]:
                 issues.append({"level": "error", "msg": f"linia {i}: czas {a} s jest za koncem klipu"})
             prev_end, seen_time = b, True
     if not seen_time:
@@ -223,7 +232,7 @@ def plan_render(pname, p, c, info, name):
         env["TURBO"] = "1"
     refs = ",".join(x.strip() for x in (c.get("refs") or p["refs"]).split(",") if x.strip())
     run = [P(p["comfy"]["python"]), "-u", p["comfy"]["runner"], name, pf, info["base"], str(c["order"]),
-           str(c.get("seed") or p["seed"]), refs, str(p["window"])]
+           str(c.get("seed") or p["seed"]), refs, str(info.get("window", p["window"]))]
     return {"name": name, "prompt_file": pf, "audio": [cut(info["master"], m), cut(info["ref"], r)], "env": env, "run": run}
 
 
@@ -527,7 +536,7 @@ def api(method, path, q, body):
             else:
                 c = {"id": f"c{int(time.time() * 1000)}", "renders": [], "prompt": "", "mode": "extend", "order": 8.4}
                 p["chunks"].append(c)
-            for k in ("name", "section", "start", "end", "text", "mode", "order", "seed", "refs", "base", "cut_frame", "lead", "prompt"):
+            for k in ("name", "section", "start", "end", "text", "mode", "order", "seed", "refs", "base", "cut_frame", "lead", "window", "prompt"):
                 if k in body:
                     c[k] = body[k]
             p["chunks"].sort(key=lambda x: float(x.get("start") or 0))

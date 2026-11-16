@@ -25,7 +25,7 @@ const EN = {
   'Słowa z czasem w piosence (Whisper, przybliżone) — kliknij słowo, żeby zagrać od niego:': 'Words with song time (Whisper, approximate) — click a word to play from it:',
   'brak słów': 'no words', '2. Wyliczenia (apka liczy sama)': '2. Calculations (done by the app)',
   'Film przed chunkiem': 'Film before this chunk', 'raw0 (czas 0 w prompcie)': 'raw0 (time 0 in the prompt)',
-  'Prefiks kończy się': 'Prefix ends at', 'Klatki klipu (zmierzone)': 'Clip frames (measured)',
+  'Prefiks kończy się': 'Prefix ends at', 'Okno kontekstu': 'Context window', 'Okno kontekstu (klatki, puste = z projektu)': 'Context window (frames, empty = from project)', 'Okno kontekstu domyślne (klatki)': 'Default context window (frames)', 'Klatki klipu (zmierzone)': 'Clip frames (measured)',
   'Klatki klipu (przewidywane)': 'Clip frames (predicted)', 'Koniec klipu w piosence': 'Clip end in song',
   'Baza': 'Base', 'brak': 'none', 'Bez ostrzeżeń.': 'No warnings.',
   'Słowa (Whisper, przybliżone) w czasie klipu — kliknij, żeby wstawić linijkę czasu do promptu:': 'Words (Whisper, approximate) in clip time — click to insert a timing line into the prompt:',
@@ -95,6 +95,8 @@ const EN = {
 };
 
 const RULES = [
+  [/^Okno kontekstu (\d+) kl\. zamiast (\d+) z projektu.*$/, 'Context window $1 fr. instead of the project value $2 - less style from the previous clip, more from the references; motion continuity may be weaker.'],
+  [/^Okno kontekstu (\d+) kl\. musi byc wieksze niz nakladka (\d+) kl\.$/, 'Context window $1 fr. must be larger than the overlap of $2 fr.'],
   [/^(.* · )świeży start$/, '$1fresh start'],
   [/^render: — \(ostatni: (.*)\)$/, 'render: — (last: $1)'],
   [/^ComfyUI: zajęte \((\d+) w toku, (\d+) czeka\)$/, 'ComfyUI: busy ($1 running, $2 waiting)'],

@@ -139,6 +139,7 @@ function drawChunk(){
       <label>Tryb<select id="f_mode"><option value="extend">extend (ciągłość)</option><option value="start">świeży start (cięcie)</option></select></label>
       <label>Zamówione sekundy<input id="f_order" type="number" step="0.1" value="${esc(c.order)}"></label>
       <label>Seed<input id="f_seed" type="number" value="${esc(c.seed??S.project.seed)}"></label>
+      <label>Okno kontekstu (klatki, puste = z projektu)<input id="f_window" type="number" min="5" step="1" value="${esc(c.window??'')}" placeholder="${esc(S.project.window)}" title="Ile ostatnich klatek poprzedniego klipu model dostaje jako kontekst. Mniej = twarz bierze więcej z refek (mniej dryfu w stronę rysunku), ale ruch może się gorzej sklejać."></label>
       <label>Refki (puste = z projektu)<input id="f_refs" value="${esc(c.refs)}" placeholder="${esc(S.project.refs)}"></label>
     </div>
     <div class="grid" id="startonly" style="margin-top:10px">
@@ -169,6 +170,7 @@ function drawChunk(){
       <div class="num"><span>Film przed chunkiem</span><b>${I.J} kl. (${t(I.J/S.project.fps)})</b></div>
       <div class="num"><span>raw0 (czas 0 w prompcie)</span><b>${t(I.raw0)}</b></div>
       <div class="num"><span>Prefiks kończy się</span><b>${t(I.prefix_end)}</b></div>
+      <div class="num"><span>Okno kontekstu</span><b>${I.window} kl. (${(I.window/S.project.fps).toFixed(2)} s)</b></div>
       <div class="num"><span>Klatki klipu ${I.end_measured?'(zmierzone)':'(przewidywane)'}</span><b>${I.frames??'?'}</b></div>
       <div class="num"><span>Koniec klipu w piosence</span><b>${t(I.end)}</b></div>
       <div class="num"><span>Audio master</span><b>od ${t(I.master.ss)}, ${I.master.t} s</b></div>
@@ -295,7 +297,7 @@ function val(id){const e=$(id);return e?e.value:undefined}
 function form(){
   const c={id:sel};
   for(const k of ['name','section','text','mode','refs','base','prompt']) c[k]=val('f_'+k);
-  for(const k of ['start','end','order','seed','cut_frame','lead']){const v=val('f_'+k); c[k]=v===''||v==null?null:+v}
+  for(const k of ['start','end','order','seed','cut_frame','lead','window']){const v=val('f_'+k); c[k]=v===''||v==null?null:+v}
   return c;
 }
 async function saveChunk(){try{await api('p/'+cur+'/chunk',form());await refresh()}catch(e){fail(e)}}
@@ -387,6 +389,7 @@ function openSettings(){
     <label>Piosenka<input id="s_song" value="${esc(p.song)}"></label>
     <label>Kroki<select id="s_steps"><option value="20">20 (jakość)</option><option value="8">8 turbo (szybko)</option></select></label>
     <label>Seed domyślny<input id="s_seed" type="number" value="${esc(p.seed)}"></label>
+    <label>Okno kontekstu domyślne (klatki)<input id="s_window" type="number" min="5" step="1" value="${esc(p.window)}"></label>
     <label>Prefiks nazw renderów<input id="s_prefix" value="${esc(p.prefix)}"></label>
     <label>Refki (ComfyUI/input, po przecinku)<input id="s_refs" value="${esc(p.refs)}"></label>
     <label>Plik fraz (_line_times.json)<input id="s_lines" value="${esc(p.lines)}"></label>
@@ -406,7 +409,7 @@ function openSettings(){
   $('s_steps').value=String(p.steps); $('dlg').showModal();
 }
 async function saveSettings(){
-  try{await api('p/'+cur+'/settings',{dir:val('s_dir'),song:val('s_song'),steps:val('s_steps'),seed:+val('s_seed'),prefix:val('s_prefix'),refs:val('s_refs'),
+  try{await api('p/'+cur+'/settings',{dir:val('s_dir'),song:val('s_song'),steps:val('s_steps'),seed:+val('s_seed'),window:+val('s_window')||39,prefix:val('s_prefix'),refs:val('s_refs'),
     lines:val('s_lines'),words:val('s_words'),base_film:{file:val('s_bfile'),frames:+val('s_bframes')||0},base_clip:val('s_bclip'),comfy:{url:val('s_curl'),input:val('s_cin'),output:val('s_cout'),python:val('s_cpy'),runner:val('s_crun')},
     forbidden:val('s_forb').split(',').map(x=>x.trim()).filter(Boolean)});$('dlg').close();await refresh()}catch(e){fail(e)}
 }

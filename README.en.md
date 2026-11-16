@@ -189,6 +189,7 @@ The same user guide is inside the program under the **Instructions** link at the
 | The analysis ends with an error about `whisper` | Whisper did not install. Repeat point 2 of Step 1. |
 | The render ends with an error right away | Click **Log** next to that version and show it to a technical person. Most often a model or add-on is missing in ComfyUI. |
 | The character stops moving the lips at the end of a piece | See the yellow warnings in "2. Calculations"; usually a different "Ordered seconds" value helps. |
+| After a few chunks the face turns "cartoonish" | In card "1. Chunk" enter a smaller **Context window** (e.g. 16 instead of 39). The model then takes less of the look from the previous piece and more from the character pictures. Motion between pieces may join slightly worse. This is not tested yet. |
 
 The program deletes nothing. Rejected versions and old files stay on disk.
 

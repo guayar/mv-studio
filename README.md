@@ -188,6 +188,7 @@ Ta sama instrukcja obsługi jest w programie pod linkiem **Instrukcja** u góry.
 | Analiza kończy się błędem o `whisper` | Whisper się nie zainstalował. Powtórz punkt 2 z Kroku 1. |
 | Render od razu kończy się błędem | Kliknij **Log** przy tej wersji i pokaż go osobie technicznej. Najczęściej w ComfyUI brakuje modelu albo dodatku. |
 | Postać nie rusza ustami na końcu kawałka | Zobacz żółte ostrzeżenia w „2. Wyliczenia”; zwykle pomaga inna wartość „Zamówione sekundy”. |
+| Po kilku chunkach twarz robi się „rysunkowa” | W karcie „1. Chunk” wpisz mniejsze **Okno kontekstu** (np. 16 zamiast 39). Model bierze wtedy mniej wyglądu z poprzedniego kawałka, a więcej ze zdjęć postaci. Ruch między kawałkami może się sklejać trochę gorzej. To jeszcze nie jest przetestowane. |
 
 Program niczego nie kasuje. Odrzucone wersje i stare pliki zostają na dysku.
 
